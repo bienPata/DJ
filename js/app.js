@@ -74,49 +74,26 @@ function handleFX(el, note) {
 }
 
 function initButtonEvents() {
+  const CUE_MIN_PRESS_MS = 70;
+
   document.querySelectorAll(".dj-btn, .fx-btn, .dj-pad, .bj-block button").forEach((el) => {
     const rawNote = el.getAttribute("data-note") || (el.id ? el.id.split("-")[1] : "");
     const note = parseInt(rawNote, 10);
+    const behavior = el.getAttribute("data-behavior") || "default";
+    let pressedAt = 0;
+    let isPressed = false;
 
-    el.addEventListener(
-      "touchstart",
-      (e) => {
-        e.preventDefault();
+    const start = (e) => {
+      e.preventDefault();
 
-        if (isLabelEdit) {
-          changeLabel(el);
-          return;
-        }
-
-        if (isImgEdit && el.classList.contains("dj-pad")) {
-          currentPad = note;
-          document.getElementById("pad-file-input")?.click();
-          return;
-        }
-
-        if (el.classList.contains("fx-btn")) {
-          handleFX(el, note);
-          return;
-        }
-
-        midi.sendNoteOn(note);
-        el.classList.add("glow-active");
-      },
-      { passive: false }
-    );
-
-    const stop = () => {
-      if (el.classList.contains("fx-btn")) return;
-      midi.sendNoteOff(note);
-      el.classList.remove("glow-active");
-    };
-
-    el.addEventListener("touchend", stop);
-    el.addEventListener("touchcancel", stop);
-
-    el.addEventListener("mousedown", () => {
       if (isLabelEdit) {
         changeLabel(el);
+        return;
+      }
+
+      if (isImgEdit && el.classList.contains("dj-pad")) {
+        currentPad = note;
+        document.getElementById("pad-file-input")?.click();
         return;
       }
 
@@ -125,12 +102,34 @@ function initButtonEvents() {
         return;
       }
 
-      el.classList.add("glow-active");
-      midi.sendNoteOn(note);
-    });
+      if (typeof el.setPointerCapture === "function") {
+        el.setPointerCapture(e.pointerId);
+      }
 
-    el.addEventListener("mouseup", stop);
-    el.addEventListener("mouseleave", stop);
+      isPressed = true;
+      pressedAt = Date.now();
+      midi.sendNoteOn(note);
+      el.classList.add("glow-active");
+    };
+
+    const stop = () => {
+      if (!isPressed || el.classList.contains("fx-btn")) return;
+
+      isPressed = false;
+      const elapsed = Date.now() - pressedAt;
+
+      if (behavior === "cue-hold" && elapsed < CUE_MIN_PRESS_MS) {
+        setTimeout(() => midi.sendNoteOff(note), CUE_MIN_PRESS_MS - elapsed);
+      } else {
+        midi.sendNoteOff(note);
+      }
+
+      el.classList.remove("glow-active");
+    };
+
+    el.addEventListener("pointerdown", start, { passive: false });
+    el.addEventListener("pointerup", stop);
+    el.addEventListener("pointercancel", stop);
   });
 }
 
@@ -144,6 +143,7 @@ function initPadsGrid() {
 
     pad.id = "pad-" + note;
     pad.setAttribute("data-note", String(note));
+    pad.setAttribute("data-behavior", "cue-hold");
     pad.className =
       "dj-pad flex items-center justify-center rounded-2xl border border-zinc-800 text-zinc-600 font-black text-2xl";
     pad.innerText = localStorage.getItem("label_" + pad.id) || String(i + 1);
