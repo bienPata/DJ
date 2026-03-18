@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#000000">
+    <title>DJ STATION</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* BLOQUEO AGRESIVO DE NAVEGADOR */
+        * {
+            -webkit-touch-callout: none !important;
+            -webkit-user-select: none !important;
+            user-select: none !important;
+            touch-action: none !important;
+            -webkit-tap-highlight-color: transparent !important;
+            outline: none !important;
+        }
+        body { 
+            background: #000; 
+            overflow: hidden; 
+            color: #71717a; 
+            font-family: ui-monospace, monospace; 
+            padding-bottom: env(safe-area-inset-bottom, 32px); 
+        }
+        
+        .glow-active { 
+            background-color: #ff0000 !important; 
+            box-shadow: 0 0 50px 10px #ff0000 !important; 
+            color: white !important; 
+            border-color: #ff8888 !important;
+            transform: scale(0.96);
+            z-index: 100;
+        }
+
+        .fx-blink { animation: blink 0.8s infinite; background: #9333ea !important; color: white !important; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        .v-fader { appearance: slider-vertical; width: 40px; height: 180px; background: #111; border-radius: 8px; }
+        .tab-btn { border-bottom: 3px solid transparent; transition: 0.3s; }
+        .tab-active { border-color: #ff0000; color: white; font-weight: 900; }
+        
+        .round-btn { border-radius: 50%; width: 75px; height: 75px; display: flex; align-items: center; justify-content: center; border: 3px solid; font-size: 1.8rem; }
+        .bj-block { background: rgba(24, 24, 27, 0.9); border: 1px solid #27272a; border-radius: 6px; overflow: hidden; }
+        .editing-border { border: 2px dashed #ff0000 !important; }
+        .dj-pad { background-size: cover; background-position: center; background-color: #0a0a0a; }
+    </style>
+</head>
+<body>
+
+    <nav class="flex justify-between items-center bg-zinc-950 border-b border-zinc-900 pt-10 pb-3 px-6">
+        <div class="flex gap-10">
+            <button onpointerdown="switchTab('mixer')" id="btn-mixer" class="tab-btn tab-active text-[11px] uppercase tracking-widest">Station Mixer</button>
+            <button onpointerdown="switchTab('pads')" id="btn-pads" class="tab-btn text-[11px] uppercase tracking-widest text-zinc-600">Performance Pads</button>
+        </div>
+        <div onclick="requestMidi()" id="status-text" class="text-[10px] font-black text-red-600 uppercase tracking-widest cursor-pointer border border-red-900 px-2 py-1 rounded">DESCONECTADO</div>
+        <div class="flex gap-6 items-center">
+            <button onpointerdown="toggleLabelEdit(event)" class="text-white opacity-40"><svg width="22" height="22" fill="currentColor" viewBox="0 0 16 16"><path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/></svg></button>
+            <button id="img-btn" onpointerdown="toggleImgEdit(event)" class="hidden text-[9px] border border-zinc-700 px-4 py-1 rounded-full text-white font-bold">IMG EDIT</button>
+            <button onpointerdown="toggleFullscreen()" class="text-white opacity-40"><svg id="fs-icon" width="22" height="22" fill="currentColor" viewBox="0 0 16 16"><path d="M1.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4A1.5 1.5 0 0 1 1.5 0h4a.5.5 0 0 1 0 1h-4zM10.5 0a.5.5 0 0 1 0 1h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4zM15.5 10.5a.5.5 0 0 1 1 0v4a1.5 1.5 0 0 1-1.5 1.5h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4zM0 10.5a.5.5 0 0 1 1 0v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 0 14.5v-4z"/></svg></button>
+        </div>
+    </nav>
+
+    <main class="h-[calc(100vh-100px)] relative">
+        <section id="view-mixer" class="grid grid-cols-12 gap-2 p-2 h-full">
+            <div class="col-span-5 grid grid-cols-12 gap-2 bg-zinc-900/10 p-3 rounded-2xl border border-zinc-900">
+                <div class="col-span-2 flex flex-col items-center justify-center"><input type="range" class="v-fader" oninput="sendCC(11, this.value)"></div>
+                <div class="col-span-10 flex flex-col gap-2">
+                    <div class="grid grid-cols-2 gap-1 h-28">
+                        <div class="bj-block grid grid-cols-3"><button class="dj-btn text-red-500 font-bold text-xl" data-note="101">◀</button><span class="flex items-center justify-center text-white text-xs">1</span><button class="dj-btn text-red-500 font-bold text-xl" data-note="105">▶</button></div>
+                        <div class="bj-block grid grid-cols-3"><button class="dj-btn text-orange-500 font-bold text-xl" data-note="102">◀</button><span class="flex items-center justify-center text-white text-xs">2</span><button class="dj-btn text-orange-500 font-bold text-xl" data-note="106">▶</button></div>
+                        <div class="bj-block grid grid-cols-3"><button class="dj-btn text-orange-500 font-bold text-xl" data-note="103">◀</button><span class="flex items-center justify-center text-white text-xs">4</span><button class="dj-btn text-orange-500 font-bold text-xl" data-note="107">▶</button></div>
+                        <div class="bj-block grid grid-cols-3"><button class="dj-btn text-red-500 font-bold text-xl" data-note="104">◀</button><span class="flex items-center justify-center text-white text-xs">8</span><button class="dj-btn text-red-500 font-bold text-xl" data-note="108">▶</button></div>
+                    </div>
+                    <button id="fx-a" class="fx-btn editable w-full py-1 bg-zinc-900 border border-zinc-800 rounded text-[9px] font-bold uppercase" data-note="42">FX TOGGLE A</button>
+                    <div class="flex gap-2 h-10"><button class="dj-btn flex-1 border border-zinc-800 rounded font-bold bg-zinc-900/40" data-note="70">- BPM</button><button class="dj-btn flex-1 border border-zinc-800 rounded font-bold bg-zinc-900/40" data-note="71">+ BPM</button></div>
+                    <div class="flex gap-2 h-10"><button class="dj-btn flex-1 border border-zinc-800 rounded font-bold bg-zinc-900/40" data-note="74">◀ PITCH</button><button class="dj-btn flex-1 border border-zinc-800 rounded font-bold bg-zinc-900/40" data-note="75">▶ PITCH</button></div>
+                    <div class="flex justify-around items-center h-24 mt-auto">
+                        <button class="dj-btn round-btn border-blue-500 text-blue-500 bg-blue-500/10" data-note="50">II</button>
+                        <button class="dj-btn round-btn border-green-500 text-green-500 bg-green-500/10" data-note="51">▶</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-span-2 flex flex-col gap-1 py-2">
+                <div class="grid grid-cols-2 gap-1 h-20"><button id="load-a" class="dj-btn editable bg-zinc-800 rounded text-[9px] font-black" data-note="30">LOAD A</button><button id="load-b" class="dj-btn editable bg-zinc-800 rounded text-[9px] font-black" data-note="31">LOAD B</button></div>
+                <button id="up" class="dj-btn editable flex-1 bg-zinc-900 rounded text-[10px] font-bold" data-note="20">UP</button>
+                <button id="select" class="dj-btn editable flex-1 bg-zinc-700 text-white rounded font-black italic text-xs uppercase" data-note="22">SELECT</button>
+                <button id="down" class="dj-btn editable flex-1 bg-zinc-900 rounded text-[10px] font-bold" data-note="21">DOWN</button>
+            </div>
+
+            <div class="col-span-5 grid grid-cols-12 gap-2 bg-zinc-900/10 p-3 rounded-2xl border border-zinc-900 text-right">
+                <div class="col-span-10 flex flex-col gap-2">
+                    <div class="grid grid-cols-2 gap-1 h-28">
+                        <div class="bj-block grid grid-cols-3"><button class="dj-btn text-red-500 font-bold text-xl" data-note="109">◀</button><span class="flex items-center justify-center text-white text-xs">1</span><button class="dj-btn text-red-500 font-bold text-xl" data-note="113">▶</button></div>
+                        <div class="bj-block grid grid-cols-3"><button class="dj-btn text-orange-500 font-bold text-xl" data-note="110">◀</button><span class="flex items-center justify-center text-white text-xs">2</span><button class="dj-btn text-orange-500 font-bold text-xl" data-note="114">▶</button></div>
+                        <div class="bj-block grid grid-cols-3"><button class="dj-btn text-orange-500 font-bold text-xl" data-note="111">◀</button><span class="flex items-center justify-center text-white text-xs">4</span><button class="dj-btn text-orange-500 font-bold text-xl" data-note="115">▶</button></div>
+                        <div class="bj-block grid grid-cols-3"><button class="dj-btn text-red-500 font-bold text-xl" data-note="112">◀</button><span class="flex items-center justify-center text-white text-xs">8</span><button class="dj-btn text-red-500 font-bold text-xl" data-note="116">▶</button></div>
+                    </div>
+                    <button id="fx-b" class="fx-btn editable w-full py-1 bg-zinc-900 border border-zinc-800 rounded text-[9px] font-bold uppercase" data-note="45">FX TOGGLE B</button>
+                    <div class="flex gap-2 h-10"><button class="dj-btn flex-1 border border-zinc-800 rounded font-bold bg-zinc-900/40" data-note="72">- BPM</button><button class="dj-btn flex-1 border border-zinc-800 rounded font-bold bg-zinc-900/40" data-note="73">+ BPM</button></div>
+                    <div class="flex gap-2 h-10"><button class="dj-btn flex-1 border border-zinc-800 rounded font-bold bg-zinc-900/40" data-note="76">◀ PITCH</button><button class="dj-btn flex-1 border border-zinc-800 rounded font-bold bg-zinc-900/40" data-note="77">▶ PITCH</button></div>
+                    <div class="flex justify-around items-center h-24 mt-auto">
+                        <button class="dj-btn round-btn border-blue-500 text-blue-500 bg-blue-500/10" data-note="52">II</button>
+                        <button class="dj-btn round-btn border-green-500 text-green-500 bg-green-500/10" data-note="53">▶</button>
+                    </div>
+                </div>
+                <div class="col-span-2 flex flex-col items-center justify-center"><input type="range" class="v-fader" oninput="sendCC(12, this.value)"></div>
+            </div>
+        </section>
+
+        <section id="view-pads" class="hidden h-full p-4"><div id="pads-grid" class="grid grid-cols-4 grid-rows-4 gap-4 h-full pb-10"></div></section>
+    </main>
+
+    <input type="file" id="pad-file-input" class="hidden" accept="image/*">
+    <script type="module" src="./js/app.js"></script>
+</body>
+</html>
